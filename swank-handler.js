@@ -170,6 +170,12 @@ Handler.prototype.receive = function receive (message) {
     console.log("Called swank:pst");
     r.result = toLisp({value: stackTrace}, ["s:value"]);
     break;
+  case "js:list-module-paths":
+    r.result = toLisp({ paths: module.paths }, [S(":paths"), "R:paths"]);
+    break;
+  case "js:module-filename":
+    r.result = toLisp({ filename: module.filename }, [S(":filename"), "s:filename"]);
+    break;
   case "swank:interactive-eval":
   case "swank:interactive-eval-region":
   case "swank:listener-eval":
@@ -305,8 +311,17 @@ function DefaultRemote () {
   this.context._swank = {
     output: function output (arg) {
       self.output(arg);
+    },
+
+    inspect: function inspect () {
+      Array.prototype.forEach.call(arguments, function (arg) {      
+        self.output(util.inspect(arg, false, 10));
+        self.output('\n');
+      }); 
     }
+    
   };
+  this.context.inspect = this.context._swank.inspect;
 }
 
 util.inherits(DefaultRemote, Remote);
