@@ -136,10 +136,16 @@ SwankJS.setupSocket = function setupSocket (url) {
           try {
             var result = self.completion.complete(m.completion);
           } catch(e) {
-            self.socket.send(JSON.stringify({
-              "op": "result",
-              "id": m.id,
-              "error": "Err listing properties\n" + swank_printStackTrace({ e: e }).join("\n")}));
+              self.socket.send(
+                  JSON.stringify(
+                      {
+                          "op": "result",
+                          "id": m.id,
+                          "error": "Err listing properties",
+                          "stack": swank_printStackTrace({ e: e }).join("\n")
+                      }
+                  )
+              );
           }
           self.debug("properties = %s", result);
           self.socket.send(
@@ -168,7 +174,8 @@ SwankJS.setupSocket = function setupSocket (url) {
             JSON.stringify(
               { "op": "result",
                 "id": m.id,
-                "error": message + "\n" + swank_printStackTrace({ e: e }).join("\n")
+                "error": message,
+                "stack": swank_printStackTrace({ e: e }).join("\n")
               }
             )
           );
@@ -178,23 +185,33 @@ SwankJS.setupSocket = function setupSocket (url) {
           self.lastMessageTime = new Date().getTime();
           self.evaluating = false;
         }
-        var resultString;
-        try {
-          resultString = String(r);
-        } catch(e) {
-          resultString = "Error stringifying result: " + e;
+
+				// xai's way
+				self.debug("result = %s", String(r));
+					
+				var retval;
+				try {
+          if( typeof r === "function") {
+            retval = String(r);
+          } else {
+            retval = String(JSON.stringify(r, undefined, "  "));
+          }
+        } catch (e) {
+          retval = String(r);
         }
-        self.debug("result = %s", resultString);
         self.socket.send(
-          JSON.stringify(
-            { "op": "result",
-              "id": m.id,
-              "error": null,
-              "values": [resultString]
-            }
-          )
-        );
-      }));
+          JSON.stringify({ 
+					  "op": "result",
+					  "id": m.id,
+					  "error": null,
+					  "values": [retval]
+          })
+				);
+			}));
+
+
+
+
   this.socket.on(
     "disconnect",
     this.makeSocketHandler(
